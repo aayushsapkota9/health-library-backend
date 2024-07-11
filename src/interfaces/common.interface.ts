@@ -13,6 +13,7 @@ export enum SuccessMessage {
   DEACTIVATE = '%s deactivated',
   ACTIVATE = '%s activated',
   SENT = '%s  sent',
+  LOGIN = 'Login Successful',
 }
 
 export enum ErrorMessage {

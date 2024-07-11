@@ -1,5 +1,5 @@
 import { PrimaryEntity } from 'src/common/dto/primary.entity';
-import { Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Column } from 'typeorm';
 
 export class Doctor extends PrimaryEntity {
   @Column()

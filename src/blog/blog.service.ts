@@ -5,6 +5,7 @@ import { UpdateBlogDto } from './dto/update-blog.dto';
 @Injectable()
 export class BlogService {
   create(createBlogDto: CreateBlogDto) {
+    console.log(createBlogDto);
     return 'This action adds a new blog';
   }
 
@@ -17,6 +18,7 @@ export class BlogService {
   }
 
   update(id: number, updateBlogDto: UpdateBlogDto) {
+    console.log(updateBlogDto);
     return `This action updates a #${id} blog`;
   }
 

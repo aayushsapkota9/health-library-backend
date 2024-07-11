@@ -10,7 +10,6 @@ import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { DoctorsModule } from './doctors/doctors.module';
 import { BlogModule } from './blog/blog.module';
-import { User } from './user/entities/user.entity';
 import { TypeOrmConfig } from './db/dbconfig';
 
 @Module({
