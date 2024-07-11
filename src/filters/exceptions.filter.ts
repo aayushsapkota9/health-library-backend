@@ -16,7 +16,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
     response.status(status).json({
       success: false,
       statusCode: status,
-      message: exception.getResponse()['message'] || null,
+      message:
+        ` ${exception
+          .getResponse()
+          ['message'].replace('%s', exception.getResponse()['error'])}` || null,
       error: exception.getResponse()['error'] || null,
     });
   }

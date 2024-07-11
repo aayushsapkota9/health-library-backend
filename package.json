@@ -18,12 +18,13 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "seed": "ts-node -r tsconfig-paths/register ./src/db/seed/seed.helper.ts"
   },
   "engines": {
     "node": ">=18.19.0",
     "yarn": "please-use-npm",
-    "npm": "10.2.3"
+    "npm": ">=10.2.3"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
@@ -32,8 +33,10 @@
     "@nestjs/mapped-types": "*",
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/swagger": "^7.4.0",
     "@nestjs/typeorm": "^10.0.1",
     "bcrypt": "^5.1.1",
+    "bcryptjs": "^2.4.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "dotenv": "^16.4.1",

@@ -1,7 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { UserService } from 'src/user/user.service';
 import { JwtService } from '@nestjs/jwt'; // 1
+import { ErrorMessage } from 'src/interfaces/common.interface';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +24,7 @@ export class AuthService {
   }
   async login(req: any) {
     const user = await this.userService.findUser(req.email);
+
     const payload = {
       name: user.name,
       email: user.email,

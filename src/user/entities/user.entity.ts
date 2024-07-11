@@ -1,11 +1,9 @@
 import { Role } from 'src/auth/enums/role.enum';
+import { PrimaryEntity } from 'src/common/dto/primary.entity';
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
-export class User {
-  @PrimaryGeneratedColumn()
-  id: number;
-
+export class User extends PrimaryEntity {
   @Column()
   name: string;
 
