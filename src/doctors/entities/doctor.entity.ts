@@ -8,8 +8,11 @@ export class Doctor extends PrimaryEntity {
   @Column()
   fullAddress: string;
 
-  @Column('simple-array')
-  documents: string[];
+  @Column()
+  document_front: string;
+
+  @Column()
+  document_back: string;
 
   @Column()
   organization: string;

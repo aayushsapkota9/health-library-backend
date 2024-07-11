@@ -10,7 +10,7 @@ export async function seedData(dataSource: DataSource): Promise<void> {
     const usersToSeed: Partial<User>[] = [
       {
         email: 'admin@admin.com',
-        name: 'Admin',
+        fullName: 'Admin',
         roles: [Role.Admin],
         password: 'Hello@123',
       },

@@ -5,7 +5,7 @@ import { Column, Entity } from 'typeorm';
 @Entity()
 export class User extends PrimaryEntity {
   @Column()
-  name: string;
+  fullName: string;
 
   @Column()
   email: string;
