@@ -11,10 +11,16 @@ import { AuthModule } from './auth/auth.module';
 import { DoctorsModule } from './doctors/doctors.module';
 import { BlogModule } from './blog/blog.module';
 import { TypeOrmConfig } from './db/dbconfig';
+import { MulterModule } from '@nestjs/platform-express';
 
 @Module({
   imports: [
     TypeOrmModule.forRoot(TypeOrmConfig),
+    MulterModule.registerAsync({
+      useFactory: () => ({
+        dest: '../upload',
+      }),
+    }),
     UserModule,
     AuthModule,
     DoctorsModule,

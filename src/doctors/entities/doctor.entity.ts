@@ -1,19 +1,24 @@
 import { PrimaryEntity } from 'src/common/dto/primary.entity';
-import { Column } from 'typeorm';
+import { User } from 'src/user/entities/user.entity';
+import { Column, JoinColumn, OneToOne } from 'typeorm';
 
 export class Doctor extends PrimaryEntity {
   @Column()
-  phone_no: string;
+  phoneNo: string;
 
   @Column()
   fullAddress: string;
 
   @Column()
-  document_front: string;
+  documentFront: string;
 
   @Column()
-  document_back: string;
+  documentBack: string;
 
   @Column()
   organization: string;
+
+  @OneToOne(() => User)
+  @JoinColumn()
+  user: User;
 }

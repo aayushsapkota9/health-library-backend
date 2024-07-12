@@ -6,6 +6,8 @@ import {
   Patch,
   Param,
   Delete,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
 import { DoctorsService } from './doctors.service';
 import { CreateDoctorDto } from './dto/create-doctor.dto';
@@ -20,6 +22,7 @@ import {
 import { ResponseMessage } from 'src/decorators/response.decorators';
 import { giveSwaggerResponseMessage } from 'src/helpers/swagger-message';
 import { SuccessMessage, ErrorMessage } from 'src/interfaces/common.interface';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('doctor')
 @Controller('doctors')
@@ -42,8 +45,21 @@ export class DoctorsController {
   })
   @Post('/register')
   @ResponseMessage(SuccessMessage.REGISTER, 'You are')
-  async register(@Body() createDoctorDto: CreateDoctorDto) {
-    const user = await this.doctorsService.create(createDoctorDto);
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'documentFront', maxCount: 1 },
+      { name: 'documentBack', maxCount: 1 },
+    ]),
+  )
+  async register(
+    @Body() createDoctorDto: CreateDoctorDto,
+    @UploadedFiles()
+    files: {
+      documentFront?: Express.Multer.File[];
+      documentBack?: Express.Multer.File[];
+    },
+  ) {
+    const user = await this.doctorsService.create(createDoctorDto, files);
     return user;
   }
   //--------------------------------------------------------------------------------------------------------------------------
