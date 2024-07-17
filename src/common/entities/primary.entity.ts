@@ -10,10 +10,10 @@ export class PrimaryEntity {
   id: string;
 
   @CreateDateColumn()
-  created_at: Date;
+  createdAt: Date;
 
   @UpdateDateColumn()
-  updated_at: Date;
+  updatedAt: Date;
 
   @DeleteDateColumn()
   deletedDate: Date;

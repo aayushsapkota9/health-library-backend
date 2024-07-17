@@ -55,6 +55,7 @@ export class DoctorsService {
     const data = await this.doctorRepository.findAndCount({
       skip: (query.page - 1) * query.limit,
       take: query.limit,
+      order: { [query.sortBy]: query.sortOrder },
       relations: ['user'],
     });
     return paginateResponse(data, query);

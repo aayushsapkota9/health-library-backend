@@ -24,7 +24,7 @@ export const paginateResponse = (
   // Sort the result array if sortBy is provided
   if (paginationDto.sortBy) {
     result.sort((a, b) => {
-      const sortOrderFactor = paginationDto.sortOrder === 'asc' ? 1 : -1;
+      const sortOrderFactor = paginationDto.sortOrder === 'ASC' ? 1 : -1;
       return (
         sortOrderFactor * (a[paginationDto.sortBy] - b[paginationDto.sortBy])
       );
