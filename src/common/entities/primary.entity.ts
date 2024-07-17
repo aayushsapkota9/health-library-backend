@@ -6,8 +6,8 @@ import {
 } from 'typeorm';
 
 export class PrimaryEntity {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @CreateDateColumn()
   created_at: Date;

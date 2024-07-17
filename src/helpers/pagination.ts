@@ -1,5 +1,7 @@
 // PaginationUtil.ts (or wherever your utility functions are)
 
+import { PaginationDto } from './pagination.dto';
+
 export interface PaginateResponse {
   prevPage: number | null;
   currentPage: number | null;
@@ -10,29 +12,29 @@ export interface PaginateResponse {
 }
 
 export const paginateResponse = (
-  data: { data: any[]; total: number },
-  page: number,
-  limit: number,
-  sortBy?: string,
-  sortOrder?: 'asc' | 'desc',
+  dataAndTotal: any,
+  paginationDto: PaginationDto,
 ): PaginateResponse => {
-  const { data: result, total } = data;
-  const lastPage = Math.ceil(total / limit);
-  const nextPage = page < lastPage ? +page + 1 : null;
-  const prevPage = page > 1 ? page - 1 : null;
+  const [result, total] = dataAndTotal;
+  const lastPage = Math.ceil(total / paginationDto.limit);
+  const nextPage =
+    paginationDto.page < lastPage ? +paginationDto.page + 1 : null;
+  const prevPage = paginationDto.page > 1 ? paginationDto.page - 1 : null;
 
   // Sort the result array if sortBy is provided
-  if (sortBy) {
+  if (paginationDto.sortBy) {
     result.sort((a, b) => {
-      const sortOrderFactor = sortOrder === 'asc' ? 1 : -1;
-      return sortOrderFactor * (a[sortBy] - b[sortBy]);
+      const sortOrderFactor = paginationDto.sortOrder === 'asc' ? 1 : -1;
+      return (
+        sortOrderFactor * (a[paginationDto.sortBy] - b[paginationDto.sortBy])
+      );
     });
   }
 
   return {
     totalCount: total,
     prevPage,
-    currentPage: +page,
+    currentPage: +paginationDto.page,
     nextPage,
     lastPage,
     result,

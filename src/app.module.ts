@@ -18,7 +18,7 @@ import { MulterModule } from '@nestjs/platform-express';
     TypeOrmModule.forRoot(TypeOrmConfig),
     MulterModule.registerAsync({
       useFactory: () => ({
-        dest: '../upload',
+        dest: './upload',
       }),
     }),
     UserModule,

@@ -1,7 +1,8 @@
-import { PrimaryEntity } from 'src/common/dto/primary.entity';
+import { PrimaryEntity } from 'src/common/entities/primary.entity';
 import { User } from 'src/user/entities/user.entity';
-import { Column, JoinColumn, OneToOne } from 'typeorm';
+import { Column, Entity, JoinColumn, OneToOne } from 'typeorm';
 
+@Entity()
 export class Doctor extends PrimaryEntity {
   @Column()
   phoneNo: string;

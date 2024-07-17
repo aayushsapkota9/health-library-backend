@@ -1,5 +1,5 @@
 import { Role } from 'src/auth/enums/role.enum';
-import { PrimaryEntity } from 'src/common/dto/primary.entity';
+import { PrimaryEntity } from 'src/common/entities/primary.entity';
 import { Column, Entity } from 'typeorm';
 
 @Entity()
