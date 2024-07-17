@@ -97,7 +97,6 @@ export class DoctorsService {
       doctor.user.id,
     );
     doctor.user = user;
-    console.log(doctor);
     return this.doctorRepository.save(doctor);
   }
 
