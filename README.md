@@ -73,3 +73,7 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 Nest is [MIT licensed](LICENSE).
 
 # aayush-kirana-pasal
+
+# References
+
+- Elastic Search Docker Compose - [Docker Compose](https://github.com/BruskiCaleb/ES-Kibana-on-Docker/blob/main/docker-compose.yml)
