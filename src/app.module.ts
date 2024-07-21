@@ -9,9 +9,9 @@ import { APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { DoctorsModule } from './doctors/doctors.module';
-import { BlogModule } from './blog/blog.module';
 import { TypeOrmConfig } from './db/dbconfig';
 import { MulterModule } from '@nestjs/platform-express';
+import { DiseasesModule } from './diseases/diseases.module';
 
 @Module({
   imports: [
@@ -24,7 +24,7 @@ import { MulterModule } from '@nestjs/platform-express';
     UserModule,
     AuthModule,
     DoctorsModule,
-    BlogModule,
+    DiseasesModule,
     // CustomerBillModule,
   ],
   controllers: [AppController],
