@@ -1,12 +1,37 @@
 import { Injectable } from '@nestjs/common';
 import { CreateDiseaseDto } from './dto/create-disease.dto';
 import { UpdateDiseaseDto } from './dto/update-disease.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
+import { Disease } from './entities/disease.entity';
+import { SearchService } from 'src/search/search.service';
 
 @Injectable()
 export class DiseasesService {
-  create(createDiseaseDto: CreateDiseaseDto) {
-    console.log(createDiseaseDto);
-    return 'This action adds a new disease';
+  constructor(
+    @InjectRepository(Disease)
+    private diseaseRepository: Repository<Disease>,
+    private searchService: SearchService,
+    private dataSource: DataSource,
+  ) {}
+  async create(createDiseaseDto: CreateDiseaseDto) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const disease = this.diseaseRepository.create(createDiseaseDto);
+      await queryRunner.manager.save(disease);
+      await this.searchService.indexDisease(disease);
+
+      await queryRunner.commitTransaction();
+      return disease;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   findAll() {
@@ -24,5 +49,9 @@ export class DiseasesService {
 
   remove(id: number) {
     return `This action removes a #${id} disease`;
+  }
+
+  async search(query: string) {
+    return this.searchService.searchDisease(query);
   }
 }

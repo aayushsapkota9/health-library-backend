@@ -12,7 +12,7 @@ import { DoctorsModule } from './doctors/doctors.module';
 import { TypeOrmConfig } from './db/dbconfig';
 import { MulterModule } from '@nestjs/platform-express';
 import { DiseasesModule } from './diseases/diseases.module';
-
+import { SearchModule } from './search/search.module';
 @Module({
   imports: [
     TypeOrmModule.forRoot(TypeOrmConfig),
@@ -25,6 +25,7 @@ import { DiseasesModule } from './diseases/diseases.module';
     AuthModule,
     DoctorsModule,
     DiseasesModule,
+    SearchModule,
     // CustomerBillModule,
   ],
   controllers: [AppController],

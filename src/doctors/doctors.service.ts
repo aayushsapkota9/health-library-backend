@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateDoctorDto } from './dto/create-doctor.dto';
 import { UpdateDoctorDto } from './dto/update-doctor.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -8,6 +12,7 @@ import { UserService } from 'src/user/user.service';
 import { Role } from 'src/auth/enums/role.enum';
 import { PaginationDto } from 'src/helpers/pagination.dto';
 import { paginateResponse } from 'src/helpers/pagination';
+import { ErrorMessage } from 'src/interfaces/common.interface';
 
 @Injectable()
 export class DoctorsService {
@@ -66,6 +71,16 @@ export class DoctorsService {
       where: { id },
       relations: ['user'],
     });
+  }
+  async findOneByEmail(email: string) {
+    const doctor = await this.doctorRepository.findOne({
+      where: { user: { email } },
+      relations: ['user'],
+    });
+    if (!doctor) {
+      throw new NotFoundException(ErrorMessage.NOT_FOUND, 'Doctor');
+    }
+    return doctor;
   }
 
   async update(
