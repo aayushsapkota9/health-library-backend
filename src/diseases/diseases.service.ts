@@ -5,6 +5,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { Disease } from './entities/disease.entity';
 import { SearchService } from 'src/search/search.service';
+import { generateSlug } from 'src/helpers/slug.helper';
+import { PaginationDto } from 'src/helpers/pagination.dto';
 
 @Injectable()
 export class DiseasesService {
@@ -21,6 +23,7 @@ export class DiseasesService {
 
     try {
       const disease = this.diseaseRepository.create(createDiseaseDto);
+      disease.slug = generateSlug(createDiseaseDto.name);
       await queryRunner.manager.save(disease);
       await this.searchService.indexDisease(disease);
 
@@ -51,7 +54,7 @@ export class DiseasesService {
     return `This action removes a #${id} disease`;
   }
 
-  async search(query: string) {
-    return this.searchService.searchDisease(query);
+  async search(paginationDto: PaginationDto) {
+    return this.searchService.searchDisease(paginationDto.query);
   }
 }

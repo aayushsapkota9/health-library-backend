@@ -29,4 +29,9 @@ export class PaginationDto {
     example: 'ASC',
   })
   sortOrder?: 'ASC' | 'DESC';
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ description: 'Search term', example: 'John' })
+  query?: string;
 }

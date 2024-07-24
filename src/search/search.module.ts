@@ -6,7 +6,14 @@ import { SearchService } from './search.service';
   imports: [
     ElasticsearchModule.registerAsync({
       useFactory: () => ({
-        node: 'http://localhost:9200',
+        node: 'https://localhost:9200',
+        auth: {
+          username: 'elastic',
+          password: 'changeme',
+        },
+        tls: {
+          rejectUnauthorized: false,
+        },
       }),
     }),
   ],

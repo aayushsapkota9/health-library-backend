@@ -6,10 +6,12 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { DiseasesService } from './diseases.service';
 import { CreateDiseaseDto } from './dto/create-disease.dto';
 import { UpdateDiseaseDto } from './dto/update-disease.dto';
+import { PaginationDto } from 'src/helpers/pagination.dto';
 
 @Controller('diseases')
 export class DiseasesController {
@@ -38,5 +40,10 @@ export class DiseasesController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.diseasesService.remove(+id);
+  }
+
+  @Get('item/search')
+  search(@Query() paginationDto: PaginationDto) {
+    return this.diseasesService.search(paginationDto);
   }
 }

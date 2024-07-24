@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
 import * as cheerio from 'cheerio';
 import * as natural from 'natural';
 import nlp from 'compromise';
+import { Disease } from 'src/diseases/entities/disease.entity';
+import { POSSIBLE_SYMPTOMS } from 'src/constants/symptoms';
 
 @Injectable()
 export class SearchService {
@@ -11,9 +13,9 @@ export class SearchService {
 
   constructor(private readonly elasticsearchService: ElasticsearchService) {}
 
-  async indexDisease(disease: any) {
-    const extractedData = this.extractDataFromHtml(disease.description_html);
-
+  async indexDisease(disease: Disease) {
+    const extractedData = this.extractDataFromHtml(disease.html);
+    console.log(extractedData);
     return this.elasticsearchService.index({
       index: 'diseases',
       body: {
@@ -28,33 +30,36 @@ export class SearchService {
     const $ = cheerio.load(html);
     const plainText = $.text();
     const symptoms = this.extractSymptoms(plainText);
-
     return { plainText, symptoms };
   }
 
-  extractSymptoms(text: string): string {
-    const doc = nlp(text);
-    const symptoms = new Set<string>();
+  extractSymptoms(text) {
+    // Preprocess text: convert to lowercase, remove punctuation, and normalize spaces
+    const lowerText = text
+      .toLowerCase()
+      .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, ' ')
+      .replace(/\s{2,}/g, ' ');
 
-    const possibleSymptoms = [
-      'fever',
-      'cough',
-      'headache',
-      'fatigue',
-      'sore throat',
-      'nausea',
-      'vomiting',
-      'diarrhea',
-      'chills',
-      'shortness of breath',
-      'muscle aches',
-      'runny nose',
-      'congestion',
-      'loss of taste',
-      'loss of smell',
-    ];
+    const doc = nlp(lowerText);
+    const symptoms = new Set();
+    const possibleSymptoms = POSSIBLE_SYMPTOMS.map((symptom) =>
+      symptom.toLowerCase(),
+    );
 
-    // Look for symptom-related words using part-of-speech tagging and known symptoms
+    // Directly match multi-word symptoms
+    possibleSymptoms.forEach((symptom) => {
+      if (lowerText.includes(symptom)) {
+        symptoms.add(symptom);
+      }
+    });
+
+    // Use compromise to find potential symptoms
+    doc.match(possibleSymptoms.join('|')).forEach((match) => {
+      const symptom = match.text().toLowerCase();
+      symptoms.add(symptom);
+    });
+
+    // Additional noun and adjective extraction
     doc.nouns().forEach((noun) => {
       const symptom = noun.text().toLowerCase();
       if (possibleSymptoms.includes(symptom)) {
@@ -69,29 +74,16 @@ export class SearchService {
       }
     });
 
-    // Enhance detection by looking at verb-adjective or noun-adjective pairs
-    doc.match('#Verb #Adjective').forEach((match) => {
-      const symptom = match.out('normal').toLowerCase();
-      if (possibleSymptoms.some((s) => symptom.includes(s))) {
-        symptoms.add(symptom);
-      }
-    });
-
-    doc.match('#Noun #Adjective').forEach((match) => {
-      const symptom = match.out('normal').toLowerCase();
-      if (possibleSymptoms.some((s) => symptom.includes(s))) {
-        symptoms.add(symptom);
-      }
-    });
+    if (symptoms.size === 0) {
+      throw new BadRequestException(`Out system couldn't detect any symptoms.`);
+    }
 
     return Array.from(symptoms).join(', ');
   }
-
   async searchDisease(query: string) {
     const tokens = this.tokenizer.tokenize(query);
     const stemmedTokens = tokens.map((token) => this.stemmer.stem(token));
     const processedQuery = stemmedTokens.join(' ');
-
     const body = await this.elasticsearchService.search({
       index: 'diseases',
       body: {
@@ -103,6 +95,7 @@ export class SearchService {
         },
       },
     });
+    console.log(body);
     return body.hits.hits.map((hit) => hit._source);
   }
 }
