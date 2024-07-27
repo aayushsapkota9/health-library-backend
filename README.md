@@ -34,7 +34,7 @@ $ npm run start:dev
 $ npm run start:prod
 ```
 
-# Stop the app once and seed the database using
+# Stop the app once and seed the database 
 
 ```bash
 # development
