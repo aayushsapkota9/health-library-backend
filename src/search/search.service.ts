@@ -5,6 +5,8 @@ import * as natural from 'natural';
 import nlp from 'compromise';
 import { Disease } from 'src/diseases/entities/disease.entity';
 import { POSSIBLE_SYMPTOMS } from 'src/constants/symptoms';
+import { PaginationDto } from 'src/helpers/pagination.dto';
+import { STOP_WORDS } from 'src/constants/StopWords';
 
 @Injectable()
 export class SearchService {
@@ -15,13 +17,38 @@ export class SearchService {
 
   async indexDisease(disease: Disease) {
     const extractedData = this.extractDataFromHtml(disease.html);
-    console.log(extractedData);
     return this.elasticsearchService.index({
       index: 'diseases',
+      id: disease.id,
       body: {
         ...disease,
         symptoms: extractedData.symptoms,
         plain_text: extractedData.plainText,
+      },
+    });
+  }
+  async delete(disease: Disease) {
+    return this.elasticsearchService.delete({
+      index: 'diseases',
+      id: disease.id,
+    });
+  }
+
+  async editDisease(disease: Disease) {
+    const extractedData = this.extractDataFromHtml(disease.html);
+    const { plainText, symptoms, ...others } = extractedData;
+
+    return this.elasticsearchService.update({
+      index: 'diseases',
+      id: disease.id,
+      body: {
+        doc: {
+          ...others,
+          symptoms: symptoms ?? undefined,
+          plain_text: plainText ?? undefined,
+          ...disease,
+        },
+        doc_as_upsert: true,
       },
     });
   }
@@ -34,7 +61,7 @@ export class SearchService {
   }
 
   extractSymptoms(text) {
-    // Preprocess text: convert to lowercase, remove punctuation, and normalize spaces
+    //preprocess text: convert to lowercase, remove punctuation, and normalize spaces
     const lowerText = text
       .toLowerCase()
       .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, ' ')
@@ -53,13 +80,13 @@ export class SearchService {
       }
     });
 
-    // Use compromise to find potential symptoms
+    //to find potential symptoms
     doc.match(possibleSymptoms.join('|')).forEach((match) => {
       const symptom = match.text().toLowerCase();
       symptoms.add(symptom);
     });
 
-    // Additional noun and adjective extraction
+    //additional noun and adjective extraction
     doc.nouns().forEach((noun) => {
       const symptom = noun.text().toLowerCase();
       if (possibleSymptoms.includes(symptom)) {
@@ -80,22 +107,48 @@ export class SearchService {
 
     return Array.from(symptoms).join(', ');
   }
-  async searchDisease(query: string) {
+  async searchDisease(paginationDto: PaginationDto) {
+    const { query, page, limit } = paginationDto;
+
     const tokens = this.tokenizer.tokenize(query);
-    const stemmedTokens = tokens.map((token) => this.stemmer.stem(token));
+
+    const filteredTokens = tokens.filter(
+      (token) => !STOP_WORDS.includes(token.toLowerCase()),
+    );
+
+    const stemmedTokens = filteredTokens.map((token) =>
+      this.stemmer.stem(token),
+    );
+
     const processedQuery = stemmedTokens.join(' ');
     const body = await this.elasticsearchService.search({
       index: 'diseases',
       body: {
         query: {
-          multi_match: {
-            query: processedQuery,
-            fields: ['name^2', 'symptoms', 'plain_text', 'description_html'],
+          bool: {
+            should: [
+              {
+                match: {
+                  name: {
+                    query: processedQuery,
+                    boost: 2, // Higher priority for name matches
+                  },
+                },
+              },
+              {
+                multi_match: {
+                  query: processedQuery,
+                  fields: ['symptoms', 'plain_text'],
+                },
+              },
+            ],
           },
         },
+        size: limit,
+        from: (page - 1) * limit,
       },
     });
-    console.log(body);
+
     return body.hits.hits.map((hit) => hit._source);
   }
 }

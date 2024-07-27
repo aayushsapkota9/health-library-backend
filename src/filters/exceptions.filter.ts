@@ -26,7 +26,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
     ) {
       message = exceptionResponse['message'] || message;
       error = exceptionResponse['error'] || error;
-
       // Check if the message is an array (indicating validation errors)
       if (Array.isArray(exceptionResponse['message'])) {
         errorFields = exceptionResponse['message'].map((msg) => {

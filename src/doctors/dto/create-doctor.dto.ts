@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsEmail } from 'class-validator';
+import { IsString, IsNotEmpty, IsEmail, IsEnum } from 'class-validator';
+import { DepartmentValue } from 'src/interfaces/enums/department.enums';
 
 export class CreateDoctorDto {
   @ApiProperty({
@@ -47,4 +48,18 @@ export class CreateDoctorDto {
   @IsString()
   @IsNotEmpty()
   organization: string;
+
+  @ApiProperty({
+    description: 'The organization of the user',
+    example: 'Acme Corp',
+  })
+  @IsString()
+  @IsNotEmpty()
+  hospital: string;
+
+  @ApiProperty({
+    example: [DepartmentValue.Cardiology, DepartmentValue.Neurology],
+  })
+  @IsEnum(DepartmentValue, { each: true })
+  departments: DepartmentValue[];
 }

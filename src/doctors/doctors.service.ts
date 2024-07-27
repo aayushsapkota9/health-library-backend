@@ -13,12 +13,17 @@ import { Role } from 'src/auth/enums/role.enum';
 import { PaginationDto } from 'src/helpers/pagination.dto';
 import { paginateResponse } from 'src/helpers/pagination';
 import { ErrorMessage } from 'src/interfaces/common.interface';
+import { HospitalService } from 'src/hospital/hospital.service';
+import { DepartmentService } from 'src/department/department.service';
+import { DepartmentValue } from 'src/interfaces/enums/department.enums';
 
 @Injectable()
 export class DoctorsService {
   constructor(
     @InjectRepository(Doctor) private doctorRepository: Repository<Doctor>,
     private userService: UserService,
+    private hospitalService: HospitalService,
+    private departmentService: DepartmentService,
     private dataSource: DataSource,
   ) {}
   async create(
@@ -33,7 +38,8 @@ export class DoctorsService {
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
-      const { fullName, email, password, ...others } = createDoctorDto;
+      const { fullName, email, password, hospital, departments, ...others } =
+        createDoctorDto;
       const user = await this.userService.addUser({
         fullName,
         email,
@@ -46,6 +52,13 @@ export class DoctorsService {
         documentBack: files.documentBack[0].path,
       });
       doctor.user = user;
+      const hospitalInDb = await this.hospitalService.findOne(hospital);
+      doctor.hospital = hospitalInDb;
+      const departmentsInDb = await this.departmentService.findMany(
+        hospital,
+        departments,
+      );
+      doctor.departments = departmentsInDb;
       const savedDoctor = await this.doctorRepository.save(doctor);
       return savedDoctor;
     } catch (err) {
@@ -72,6 +85,7 @@ export class DoctorsService {
       relations: ['user'],
     });
   }
+
   async findOneByEmail(email: string) {
     const doctor = await this.doctorRepository.findOne({
       where: { user: { email } },
@@ -118,5 +132,17 @@ export class DoctorsService {
   async remove(id: string) {
     const doctor = await this.findOne(id);
     return this.doctorRepository.remove(doctor);
+  }
+
+  async findByHospitalAndDepartment(
+    hospital: string,
+    department: DepartmentValue,
+  ) {
+    return await this.doctorRepository.find({
+      where: {
+        hospital: { id: hospital },
+        departments: { value: department },
+      },
+    });
   }
 }

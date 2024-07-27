@@ -13,6 +13,11 @@ import { TypeOrmConfig } from './db/dbconfig';
 import { MulterModule } from '@nestjs/platform-express';
 import { DiseasesModule } from './diseases/diseases.module';
 import { SearchModule } from './search/search.module';
+import { HospitalModule } from './hospital/hospital.module';
+import { DepartmentModule } from './department/department.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
+import { AppointmentModule } from './appointment/appointment.module';
 @Module({
   imports: [
     TypeOrmModule.forRoot(TypeOrmConfig),
@@ -21,11 +26,18 @@ import { SearchModule } from './search/search.module';
         dest: './upload',
       }),
     }),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'upload'),
+      serveRoot: '/upload',
+    }),
     UserModule,
     AuthModule,
     DoctorsModule,
     DiseasesModule,
     SearchModule,
+    HospitalModule,
+    DepartmentModule,
+    AppointmentModule,
     // CustomerBillModule,
   ],
   controllers: [AppController],

@@ -1,10 +1,8 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { PrimaryEntity } from 'src/common/entities/primary.entity';
+import { Entity, Column } from 'typeorm';
 
 @Entity()
-export class Disease {
-  @PrimaryGeneratedColumn('uuid')
-  id: number;
-
+export class Disease extends PrimaryEntity {
   @Column({ nullable: false, unique: true })
   slug: string;
 

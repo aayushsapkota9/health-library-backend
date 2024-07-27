@@ -27,6 +27,7 @@ import { SuccessMessage, ErrorMessage } from 'src/interfaces/common.interface';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { PaginationDto } from 'src/helpers/pagination.dto';
 import { GlobalFileUploadConfig } from 'src/common/config/file-upload.config';
+import { DepartmentValue } from 'src/interfaces/enums/department.enums';
 
 @ApiTags('doctor')
 @Controller('doctors')
@@ -158,5 +159,32 @@ export class DoctorsController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.doctorsService.remove(id);
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------------
+
+  @ApiOperation({ summary: 'Get all doctors' })
+  @ApiOkResponse({
+    status: 201,
+    description: giveSwaggerResponseMessage(SuccessMessage.FETCH, 'Doctors'),
+  })
+  @ApiBadRequestResponse({
+    status: 400,
+    description: ErrorMessage.INVALID_BODY,
+  })
+  @ApiInternalServerErrorResponse({
+    status: 500,
+    description: ErrorMessage.INTERNAL_SERVER_ERROR,
+  })
+  @ResponseMessage(SuccessMessage.FETCH, 'Doctors')
+  @Get('/hospital/:hospitalId/:departmentId')
+  findDoctorByHospitalAndDepartment(
+    @Param('hospitalId') hospitalId: string,
+    @Param('departmentId') departmentId: DepartmentValue,
+  ) {
+    return this.doctorsService.findByHospitalAndDepartment(
+      hospitalId,
+      departmentId,
+    );
   }
 }

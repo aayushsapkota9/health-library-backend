@@ -1,0 +1,18 @@
+export const STOP_WORDS = [
+  'i',
+  'have',
+  'the',
+  'a',
+  'an',
+  'and',
+  'or',
+  'but',
+  'with',
+  'in',
+  'on',
+  'at',
+  'by',
+  'for',
+  'of',
+  'to',
+];

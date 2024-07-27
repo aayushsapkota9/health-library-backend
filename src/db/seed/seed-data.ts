@@ -18,7 +18,5 @@ export async function seedData(dataSource: DataSource): Promise<void> {
     usersToSeed[0].password = await bcrypt.hash('Hello@123', 10);
 
     await userRepository.save(usersToSeed);
-  } catch (error) {
-    console.log(error);
-  }
+  } catch (error) {}
 }
