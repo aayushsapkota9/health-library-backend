@@ -33,7 +33,7 @@ $ npm run start:dev
 # production mode
 $ npm run start:prod
 ```
-
+The app can be opened at port http://localhost:3000 as default or any other as per config
 # Stop the app once and seed the database 
 
 ```bash
