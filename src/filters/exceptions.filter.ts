@@ -9,6 +9,7 @@ import { Response } from 'express';
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: HttpException, host: ArgumentsHost) {
+    console.log(exception);
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const status = exception.getStatus();
@@ -17,7 +18,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
     let message = 'An error occurred';
     let error = null;
     let errorFields = null;
-
     if (typeof exceptionResponse === 'string') {
       message = exceptionResponse;
     } else if (

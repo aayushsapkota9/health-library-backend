@@ -8,7 +8,6 @@ import { TransformInterceptor } from './interceptors/transform.interceptor';
 import { APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
-import { DoctorsModule } from './doctors/doctors.module';
 import { TypeOrmConfig } from './db/dbconfig';
 import { MulterModule } from '@nestjs/platform-express';
 import { DiseasesModule } from './diseases/diseases.module';
@@ -17,7 +16,7 @@ import { HospitalModule } from './hospital/hospital.module';
 import { DepartmentModule } from './department/department.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
-import { AppointmentModule } from './appointment/appointment.module';
+import { StaffModule } from './staff/staff.module';
 @Module({
   imports: [
     TypeOrmModule.forRoot(TypeOrmConfig),
@@ -32,12 +31,11 @@ import { AppointmentModule } from './appointment/appointment.module';
     }),
     UserModule,
     AuthModule,
-    DoctorsModule,
+    StaffModule,
     DiseasesModule,
     SearchModule,
     HospitalModule,
     DepartmentModule,
-    AppointmentModule,
     // CustomerBillModule,
   ],
   controllers: [AppController],

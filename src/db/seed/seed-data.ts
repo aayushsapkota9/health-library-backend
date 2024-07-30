@@ -10,13 +10,15 @@ export async function seedData(dataSource: DataSource): Promise<void> {
     const usersToSeed: Partial<User>[] = [
       {
         email: 'admin@admin.com',
-        fullName: 'Admin',
-        roles: [Role.Admin],
+        name: 'Admin',
+        role: Role.SUPER_ADMIN,
         password: 'Hello@123',
       },
     ];
     usersToSeed[0].password = await bcrypt.hash('Hello@123', 10);
 
     await userRepository.save(usersToSeed);
-  } catch (error) {}
+  } catch (error) {
+    console.log(error);
+  }
 }

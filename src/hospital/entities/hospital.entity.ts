@@ -1,7 +1,7 @@
 import { PrimaryEntity } from 'src/common/entities/primary.entity';
 import { Department } from 'src/department/entities/department.entity';
-import { Doctor } from 'src/doctors/entities/doctor.entity';
-import { Column, Entity, OneToMany } from 'typeorm';
+import { User } from 'src/user/entities/user.entity';
+import { Column, Entity, JoinColumn, OneToMany, OneToOne } from 'typeorm';
 
 @Entity()
 export class Hospital extends PrimaryEntity {
@@ -9,35 +9,21 @@ export class Hospital extends PrimaryEntity {
   name: string;
 
   @Column()
-  phone: string;
-
-  @Column()
   address: string;
 
   @Column()
-  noOfGeneralBeds: number;
+  phone: string;
 
   @Column()
-  noOfICUBeds: number;
+  noOfBeds: number;
 
   @Column()
-  noOfEmergencyBeds: number;
-
-  @Column()
-  image: string;
-
-  @Column()
-  backgroundImage: string;
-
-  @Column({ nullable: true })
-  latitude: string;
-
-  @Column({ nullable: true })
-  longitude: string;
-
-  @OneToMany(() => Doctor, (doctor) => doctor.hospital)
-  doctors: Doctor[];
+  logo: string;
 
   @OneToMany(() => Department, (department) => department.hospital)
   departments: Department[];
+
+  @OneToOne(() => User)
+  @JoinColumn()
+  user: User;
 }

@@ -25,14 +25,14 @@ import {
 } from '@nestjs/swagger';
 import { giveSwaggerResponseMessage } from 'src/helpers/swagger-message';
 import { CurrentUser } from './decorators/get-user.decorator';
-import { DoctorsService } from 'src/doctors/doctors.service';
+import { StaffService } from 'src/staff/staff.service';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(
     private authService: AuthService,
-    private readonly doctorService: DoctorsService,
+    private readonly staffService: StaffService,
     // private userService: UserService,
   ) {}
 
@@ -71,15 +71,15 @@ export class AuthController {
     description: ErrorMessage.INTERNAL_SERVER_ERROR,
   })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.User)
+  @Roles(Role.ADMIN, Role.PATIENT, Role.STAFF)
   @Get('/user/me')
-  async getProfile(@CurrentUser() user) {
-    // Ensure req.user is properly populated by JwtAuthGuard
+  async getProfile(
+    @CurrentUser() user: { userId: string; email: string; role: Role },
+  ) {
     if (!user.email) {
       throw new UnauthorizedException('User not authenticated');
     }
-    const others = await this.doctorService.findOneByEmail(user.email);
-    others.user.password = '';
+    const others = await this.authService.getUserInfo(user.userId);
     return others;
   }
 }

@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum } from 'class-validator';
-import { DepartmentValue } from 'src/interfaces/enums/department.enums';
+import { DepartmentValue } from 'src/enums/department.enums';
 
 export class CreateDepartmentDto {
   @ApiProperty({

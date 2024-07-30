@@ -7,16 +7,18 @@ import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtModule } from '@nestjs/jwt';
 import 'dotenv/config';
-import { DoctorsModule } from 'src/doctors/doctors.module';
+import { StaffModule } from 'src/staff/staff.module';
+import { HospitalModule } from 'src/hospital/hospital.module';
 
 @Module({
   imports: [
     UserModule,
-    DoctorsModule,
+    StaffModule,
+    HospitalModule,
     PassportModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '3600s' },
+      signOptions: { expiresIn: '1d' },
     }),
   ],
   providers: [AuthService, LocalStrategy, JwtStrategy],

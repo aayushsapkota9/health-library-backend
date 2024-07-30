@@ -4,21 +4,18 @@ import { Column, Entity } from 'typeorm';
 
 @Entity()
 export class User extends PrimaryEntity {
-  @Column()
-  fullName: string;
+  @Column({ nullable: true })
+  name: string;
 
   @Column({ unique: true })
   email: string;
 
-  @Column()
+  @Column({ select: false })
   password: string;
 
   @Column({
     type: 'enum',
     enum: Role,
-    array: true,
-    nullable: true, // Make roles optional
-    default: [Role.User], // Provide a default value if needed
   })
-  roles: Role[];
+  role: Role;
 }

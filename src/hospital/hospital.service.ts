@@ -7,6 +7,8 @@ import { Hospital } from './entities/hospital.entity';
 import { DepartmentService } from 'src/department/department.service';
 import { PaginationDto } from 'src/helpers/pagination.dto';
 import { paginateResponse } from 'src/helpers/pagination';
+import { UserService } from 'src/user/user.service';
+import { Role } from 'src/auth/enums/role.enum';
 
 @Injectable()
 export class HospitalService {
@@ -14,18 +16,24 @@ export class HospitalService {
     @InjectRepository(Hospital)
     private readonly hospitalRepository: Repository<Hospital>,
     private readonly departmentService: DepartmentService,
+    private readonly userService: UserService,
   ) {}
   async create(
     createHospitalDto: CreateHospitalDto,
     files: {
-      image?: Express.Multer.File[];
-      backgroundImage?: Express.Multer.File[];
+      logo: Express.Multer.File[];
     },
   ) {
     const { departments, ...others } = createHospitalDto;
     const hospital = this.hospitalRepository.create(others);
-    hospital.backgroundImage = files.backgroundImage[0].path;
-    hospital.image = files.image[0].path;
+    hospital.logo = files.logo[0].path;
+    const user = await this.userService.addUser({
+      name: createHospitalDto.name,
+      email: createHospitalDto.email,
+      password: createHospitalDto.password,
+      role: Role.ADMIN,
+    });
+    hospital.user = user;
     const dbDepartments = await Promise.all(
       departments.map((item) => {
         return this.departmentService.create({ value: item });
@@ -40,6 +48,7 @@ export class HospitalService {
       skip: (query.page - 1) * query.limit,
       take: query.limit,
       order: { [query.sortBy]: query.sortOrder },
+      relations: ['user'],
     });
     return paginateResponse(data, query);
   }
@@ -47,19 +56,33 @@ export class HospitalService {
   findOne(id: string) {
     return this.hospitalRepository.findOne({
       where: { id },
-      relations: ['departments'],
+      relations: ['departments', 'user'],
+    });
+  }
+  findHospitalByUser(id: string) {
+    return this.hospitalRepository.findOne({
+      where: { user: { id } },
+      relations: ['departments', 'user'],
     });
   }
 
-  async update(id: string, updateHospitalDto: UpdateHospitalDto) {
-    const { departments, ...others } = updateHospitalDto;
-    console.log(departments);
+  async update(
+    id: string,
+    updateHospitalDto: UpdateHospitalDto,
+    files: {
+      logo?: Express.Multer.File[];
+    },
+  ) {
+    const { departments, ...others } = updateHospitalDto; // eslint-disable-line @typescript-eslint/no-unused-vars
     const hospital = await this.hospitalRepository.findOne({ where: { id } });
+    if (files.logo) {
+      hospital.logo = files.logo[0].path;
+    }
     Object.assign(hospital, others);
     return this.hospitalRepository.save(hospital);
   }
 
   remove(id: string) {
-    return this.hospitalRepository.delete({ id });
+    return this.hospitalRepository.softRemove({ id });
   }
 }

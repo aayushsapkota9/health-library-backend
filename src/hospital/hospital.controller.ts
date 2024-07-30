@@ -10,6 +10,7 @@ import {
   UploadedFiles,
   BadRequestException,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { HospitalService } from './hospital.service';
 import { CreateHospitalDto } from './dto/create-hospital.dto';
@@ -20,13 +21,19 @@ import {
   ApiOkResponse,
   ApiBadRequestResponse,
   ApiInternalServerErrorResponse,
+  ApiTags,
 } from '@nestjs/swagger';
 import { GlobalFileUploadConfig } from 'src/common/config/file-upload.config';
 import { ResponseMessage } from 'src/decorators/response.decorators';
 import { giveSwaggerResponseMessage } from 'src/helpers/swagger-message';
 import { SuccessMessage, ErrorMessage } from 'src/interfaces/common.interface';
 import { PaginationDto } from 'src/helpers/pagination.dto';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { Role } from 'src/auth/enums/role.enum';
+import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
 
+@ApiTags('hospital')
 @Controller('hospital')
 export class HospitalController {
   constructor(private readonly hospitalService: HospitalService) {}
@@ -48,31 +55,25 @@ export class HospitalController {
     status: 500,
     description: ErrorMessage.INTERNAL_SERVER_ERROR,
   })
-  @Post()
   @ResponseMessage(SuccessMessage.REGISTER, 'Hospital is')
   @UseInterceptors(
     FileFieldsInterceptor(
-      [
-        { name: 'image', maxCount: 1 },
-        { name: 'backgroundImage', maxCount: 1 },
-      ],
+      [{ name: 'logo', maxCount: 1 }],
       GlobalFileUploadConfig,
     ),
   )
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.SUPER_ADMIN)
+  @Post()
   create(
     @Body() createHospitalDto: CreateHospitalDto,
     @UploadedFiles()
     files: {
-      image?: Express.Multer.File[];
-      backgroundImage?: Express.Multer.File[];
+      logo: Express.Multer.File[];
     },
   ) {
-    if (!files.image) {
-      throw new BadRequestException(['image is required']);
-    }
-
-    if (!files.backgroundImage) {
-      throw new BadRequestException(['backgroundImage is required']);
+    if (!files.logo) {
+      throw new BadRequestException(['logo is required']);
     }
     return this.hospitalService.create(createHospitalDto, files);
   }
@@ -93,24 +94,87 @@ export class HospitalController {
     description: ErrorMessage.INTERNAL_SERVER_ERROR,
   })
   @ResponseMessage(SuccessMessage.FETCH, 'Hospitals')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @Get()
   findAll(@Query() query: PaginationDto) {
     return this.hospitalService.findAll(query);
   }
+  //--------------------------------------------------------------------------------------------------------------------------
 
+  @ApiOperation({ summary: 'Get a hospitals' })
+  @ApiOkResponse({
+    status: 201,
+    description: giveSwaggerResponseMessage(SuccessMessage.FETCH, 'Hospital'),
+  })
+  @ApiBadRequestResponse({
+    status: 400,
+    description: ErrorMessage.INVALID_BODY,
+  })
+  @ApiInternalServerErrorResponse({
+    status: 500,
+    description: ErrorMessage.INTERNAL_SERVER_ERROR,
+  })
+  @ResponseMessage(SuccessMessage.FETCH, 'Hospital')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.hospitalService.findOne(id);
   }
+  //--------------------------------------------------------------------------------------------------------------------------
 
+  @ApiOperation({ summary: 'To update a hospitals' })
+  @ApiOkResponse({
+    status: 201,
+    description: giveSwaggerResponseMessage(SuccessMessage.PATCH, 'Hospital'),
+  })
+  @ApiBadRequestResponse({
+    status: 400,
+    description: ErrorMessage.INVALID_BODY,
+  })
+  @ApiInternalServerErrorResponse({
+    status: 500,
+    description: ErrorMessage.INTERNAL_SERVER_ERROR,
+  })
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [{ name: 'logo', maxCount: 1 }],
+      GlobalFileUploadConfig,
+    ),
+  )
+  @ResponseMessage(SuccessMessage.PATCH, 'Hospital')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.SUPER_ADMIN)
   @Patch(':id')
   update(
     @Param('id') id: string,
     @Body() updateHospitalDto: UpdateHospitalDto,
+    @UploadedFiles()
+    files: {
+      logo?: Express.Multer.File[];
+    },
   ) {
-    return this.hospitalService.update(id, updateHospitalDto);
+    return this.hospitalService.update(id, updateHospitalDto, files);
   }
+  //--------------------------------------------------------------------------------------------------------------------------
 
+  @ApiOperation({ summary: 'Get all hospitals' })
+  @ApiOkResponse({
+    status: 201,
+    description: giveSwaggerResponseMessage(SuccessMessage.FETCH, 'Hospitals'),
+  })
+  @ApiBadRequestResponse({
+    status: 400,
+    description: ErrorMessage.INVALID_BODY,
+  })
+  @ApiInternalServerErrorResponse({
+    status: 500,
+    description: ErrorMessage.INTERNAL_SERVER_ERROR,
+  })
+  @ResponseMessage(SuccessMessage.FETCH, 'Hospitals')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.SUPER_ADMIN)
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.hospitalService.remove(id);

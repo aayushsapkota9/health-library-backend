@@ -1,4 +1,4 @@
-import { DepartmentValue } from 'src/interfaces/enums/department.enums';
+import { DepartmentValue } from 'src/enums/department.enums';
 
 export const DEPARTMENTS = [
   {

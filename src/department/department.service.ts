@@ -4,7 +4,7 @@ import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { InjectRepository } from '@nestjs/typeorm/dist';
 import { Department } from './entities/department.entity';
 import { In, Repository } from 'typeorm';
-import { DepartmentValue } from 'src/interfaces/enums/department.enums';
+import { DepartmentValue } from 'src/enums/department.enums';
 
 @Injectable()
 export class DepartmentService {
@@ -31,11 +31,10 @@ export class DepartmentService {
       },
     });
   }
-  async findMany(hospitalId: string, ids: string[]) {
+  async findMany(ids: string[]) {
     return await this.departmentRepository.find({
       where: {
-        hospital: { id: hospitalId }, // Ensure we are matching the hospital ID
-        value: In(ids),
+        id: In(ids),
       },
     });
   }

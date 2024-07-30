@@ -1,12 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsString,
-  IsOptional,
   IsEnum,
   IsNotEmpty,
   IsNumberString,
+  IsEmail,
 } from 'class-validator';
-import { DepartmentValue } from 'src/interfaces/enums/department.enums';
+import { DepartmentValue } from 'src/enums/department.enums';
 
 export class CreateHospitalDto {
   @ApiProperty({ example: 'City Hospital' })
@@ -24,25 +24,17 @@ export class CreateHospitalDto {
 
   @ApiProperty({ example: 50 })
   @IsNumberString()
-  noOfGeneralBeds: number;
+  noOfBeds: number;
 
-  @ApiProperty({ example: 10 })
-  @IsNumberString()
-  noOfICUBeds: number;
+  @ApiProperty({ example: 'email' })
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
 
-  @ApiProperty({ example: 5 })
-  @IsNumberString()
-  noOfEmergencyBeds: number;
-
-  @ApiProperty({ example: '12.345678', required: false })
-  @IsOptional()
+  @ApiProperty({ example: 'password' })
   @IsString()
-  latitude?: string;
-
-  @ApiProperty({ example: '98.765432', required: false })
-  @IsOptional()
-  @IsString()
-  longitude?: string;
+  @IsNotEmpty()
+  password: string;
 
   @ApiProperty({
     example: [DepartmentValue.Cardiology, DepartmentValue.Neurology],
