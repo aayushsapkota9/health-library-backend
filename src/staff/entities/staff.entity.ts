@@ -1,6 +1,8 @@
 import { POSITION } from 'src/auth/enums/position.enum';
 import { PrimaryEntity } from 'src/common/entities/primary.entity';
 import { Department } from 'src/department/entities/department.entity';
+import { Task } from 'src/tasks/entities/task.entity';
+import { Test } from 'src/tests/entities/test.entity';
 import { User } from 'src/user/entities/user.entity';
 import {
   Column,
@@ -8,6 +10,7 @@ import {
   JoinColumn,
   JoinTable,
   ManyToMany,
+  OneToMany,
   OneToOne,
 } from 'typeorm';
 
@@ -35,4 +38,10 @@ export class Staff extends PrimaryEntity {
   @ManyToMany(() => Department, (department) => department.doctors)
   @JoinTable()
   departments: Department[];
+
+  @OneToMany(() => Task, (task) => task.staff)
+  tasks: Task[];
+
+  @OneToMany(() => Test, (test) => test.staff)
+  tests: Test[];
 }

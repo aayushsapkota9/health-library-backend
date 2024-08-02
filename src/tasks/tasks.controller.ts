@@ -6,16 +6,12 @@ import {
   Patch,
   Param,
   Delete,
-  UseInterceptors,
-  UploadedFiles,
-  BadRequestException,
-  Query,
   UseGuards,
+  Query,
 } from '@nestjs/common';
-import { HospitalService } from './hospital.service';
-import { CreateHospitalDto } from './dto/create-hospital.dto';
-import { UpdateHospitalDto } from './dto/update-hospital.dto';
-import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { TasksService } from './tasks.service';
+import { CreateTaskDto } from './dto/create-task.dto';
+import { UpdateTaskDto } from './dto/update-task.dto';
 import {
   ApiOperation,
   ApiOkResponse,
@@ -23,28 +19,27 @@ import {
   ApiInternalServerErrorResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { GlobalFileUploadConfig } from 'src/common/config/file-upload.config';
-import { ResponseMessage } from 'src/decorators/response.decorators';
-import { giveSwaggerResponseMessage } from 'src/helpers/swagger-message';
-import { SuccessMessage, ErrorMessage } from 'src/interfaces/common.interface';
-import { PaginationDto } from 'src/helpers/pagination.dto';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { Role } from 'src/auth/enums/role.enum';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { ResponseMessage } from 'src/decorators/response.decorators';
+import { giveSwaggerResponseMessage } from 'src/helpers/swagger-message';
+import { SuccessMessage, ErrorMessage } from 'src/interfaces/common.interface';
+import { PaginationDto } from 'src/helpers/pagination.dto';
+import { TaskStatus } from 'src/auth/enums/status.enums';
 
-@ApiTags('hospital')
-@Controller('hospital')
-export class HospitalController {
-  constructor(private readonly hospitalService: HospitalService) {}
-
+@ApiTags('tasks')
+@Controller('tasks')
+export class TasksController {
+  constructor(private readonly tasksService: TasksService) {}
   //--------------------------------------------------------------------------------------------------------------------------
-  @ApiOperation({ summary: 'Register a new hospital' })
+  @ApiOperation({ summary: 'Register a new record/admit a patient' })
   @ApiOkResponse({
     status: 201,
     description: giveSwaggerResponseMessage(
-      SuccessMessage.REGISTER,
-      'Hospital is',
+      SuccessMessage.ADMITTED,
+      'Patient is',
     ),
   })
   @ApiBadRequestResponse({
@@ -55,35 +50,20 @@ export class HospitalController {
     status: 500,
     description: ErrorMessage.INTERNAL_SERVER_ERROR,
   })
-  @ResponseMessage(SuccessMessage.REGISTER, 'Hospital is')
-  @UseInterceptors(
-    FileFieldsInterceptor(
-      [{ name: 'logo', maxCount: 1 }],
-      GlobalFileUploadConfig,
-    ),
-  )
+  @ResponseMessage(SuccessMessage.REGISTER, 'Patient is')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(Role.STAFF)
   @Post()
-  create(
-    @Body() createHospitalDto: CreateHospitalDto,
-    @UploadedFiles()
-    files: {
-      logo: Express.Multer.File[];
-    },
-  ) {
-    if (!files.logo) {
-      throw new BadRequestException(['logo is required']);
-    }
-    return this.hospitalService.create(createHospitalDto, files);
+  create(@Body() createTaskDto: CreateTaskDto) {
+    return this.tasksService.create(createTaskDto);
   }
 
   //--------------------------------------------------------------------------------------------------------------------------
 
-  @ApiOperation({ summary: 'Get all hospitals' })
+  @ApiOperation({ summary: 'Get all records' })
   @ApiOkResponse({
     status: 201,
-    description: giveSwaggerResponseMessage(SuccessMessage.FETCH, 'Hospitals'),
+    description: giveSwaggerResponseMessage(SuccessMessage.FETCH, 'Records'),
   })
   @ApiBadRequestResponse({
     status: 400,
@@ -93,19 +73,18 @@ export class HospitalController {
     status: 500,
     description: ErrorMessage.INTERNAL_SERVER_ERROR,
   })
-  @ResponseMessage(SuccessMessage.FETCH, 'Hospitals')
+  @ResponseMessage(SuccessMessage.FETCH, 'Records')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.STAFF)
   @Get()
   findAll(@Query() query: PaginationDto) {
-    return this.hospitalService.findAll(query);
+    return this.tasksService.findAll(query);
   }
-  //--------------------------------------------------------------------------------------------------------------------------
 
-  @ApiOperation({ summary: 'Get a hospitals' })
+  @ApiOperation({ summary: 'Get all records by status' })
   @ApiOkResponse({
     status: 201,
-    description: giveSwaggerResponseMessage(SuccessMessage.FETCH, 'Hospital'),
+    description: giveSwaggerResponseMessage(SuccessMessage.FETCH, 'Records'),
   })
   @ApiBadRequestResponse({
     status: 400,
@@ -115,19 +94,46 @@ export class HospitalController {
     status: 500,
     description: ErrorMessage.INTERNAL_SERVER_ERROR,
   })
-  @ResponseMessage(SuccessMessage.FETCH, 'Hospital')
+  @ResponseMessage(SuccessMessage.FETCH, 'Records')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.STAFF)
+  @Get('find/:status')
+  findByStatus(
+    @Query() query: PaginationDto,
+    @Param('status') status: TaskStatus,
+  ) {
+    return this.tasksService.findByStatus(query, status);
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------------
+
+  @ApiOperation({ summary: 'Get a record' })
+  @ApiOkResponse({
+    status: 201,
+    description: giveSwaggerResponseMessage(SuccessMessage.FETCH, 'Record'),
+  })
+  @ApiBadRequestResponse({
+    status: 400,
+    description: ErrorMessage.INVALID_BODY,
+  })
+  @ApiInternalServerErrorResponse({
+    status: 500,
+    description: ErrorMessage.INTERNAL_SERVER_ERROR,
+  })
+  @ResponseMessage(SuccessMessage.FETCH, 'Record')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.STAFF)
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.hospitalService.findOne(id);
+    return this.tasksService.findOne(id);
   }
+
   //--------------------------------------------------------------------------------------------------------------------------
 
-  @ApiOperation({ summary: 'To update a hospitals' })
+  @ApiOperation({ summary: 'To update a record' })
   @ApiOkResponse({
     status: 201,
-    description: giveSwaggerResponseMessage(SuccessMessage.PATCH, 'Hospital'),
+    description: giveSwaggerResponseMessage(SuccessMessage.PATCH, 'Record'),
   })
   @ApiBadRequestResponse({
     status: 400,
@@ -137,32 +143,20 @@ export class HospitalController {
     status: 500,
     description: ErrorMessage.INTERNAL_SERVER_ERROR,
   })
-  @UseInterceptors(
-    FileFieldsInterceptor(
-      [{ name: 'logo', maxCount: 1 }],
-      GlobalFileUploadConfig,
-    ),
-  )
-  @ResponseMessage(SuccessMessage.PATCH, 'Hospital')
+  @ResponseMessage(SuccessMessage.PATCH, 'Record')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(Role.STAFF)
   @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() updateHospitalDto: UpdateHospitalDto,
-    @UploadedFiles()
-    files: {
-      logo?: Express.Multer.File[];
-    },
-  ) {
-    return this.hospitalService.update(id, updateHospitalDto, files);
+  update(@Param('id') id: string, @Body() updateTaskDto: UpdateTaskDto) {
+    return this.tasksService.update(id, updateTaskDto);
   }
+
   //--------------------------------------------------------------------------------------------------------------------------
 
-  @ApiOperation({ summary: 'Delete a hospital' })
+  @ApiOperation({ summary: 'Get delete record' })
   @ApiOkResponse({
     status: 201,
-    description: giveSwaggerResponseMessage(SuccessMessage.DELETE, 'Hospital'),
+    description: giveSwaggerResponseMessage(SuccessMessage.DELETE, 'Record'),
   })
   @ApiBadRequestResponse({
     status: 400,
@@ -172,11 +166,11 @@ export class HospitalController {
     status: 500,
     description: ErrorMessage.INTERNAL_SERVER_ERROR,
   })
-  @ResponseMessage(SuccessMessage.DELETE, 'Hospital')
+  @ResponseMessage(SuccessMessage.DELETE, 'Record')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.SUPER_ADMIN)
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.hospitalService.remove(id);
+    return this.tasksService.remove(id);
   }
 }

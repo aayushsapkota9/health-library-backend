@@ -93,7 +93,7 @@ export class StaffController {
   })
   @ResponseMessage(SuccessMessage.FETCH, 'Staff')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.STAFF)
   @Get()
   findAll(@Query() query: PaginationDto) {
     return this.staffService.findAll(query);

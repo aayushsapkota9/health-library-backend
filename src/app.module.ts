@@ -17,6 +17,12 @@ import { DepartmentModule } from './department/department.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { StaffModule } from './staff/staff.module';
+import { PatientsModule } from './patients/patients.module';
+import { RecordsModule } from './records/records.module';
+import { TestsModule } from './tests/tests.module';
+import { TasksModule } from './tasks/tasks.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { PrescriptionsModule } from './prescriptions/prescriptions.module';
 @Module({
   imports: [
     TypeOrmModule.forRoot(TypeOrmConfig),
@@ -36,6 +42,12 @@ import { StaffModule } from './staff/staff.module';
     SearchModule,
     HospitalModule,
     DepartmentModule,
+    PatientsModule,
+    RecordsModule,
+    TestsModule,
+    TasksModule,
+    NotificationsModule,
+    PrescriptionsModule,
     // CustomerBillModule,
   ],
   controllers: [AppController],
