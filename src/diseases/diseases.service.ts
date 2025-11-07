@@ -24,6 +24,7 @@ export class DiseasesService {
 
     try {
       const slug = generateSlug(createDiseaseDto.name);
+      console.log(slug);
       const existingName = await this.findOne(slug);
       if (existingName) {
         throw new BadRequestException(
@@ -56,7 +57,7 @@ export class DiseasesService {
   }
 
   findOne(id: string) {
-    return this.diseaseRepository.findOne({ where: { id } });
+    return this.diseaseRepository.findOne({ where: { slug: id } });
   }
 
   findById(slug: string) {
