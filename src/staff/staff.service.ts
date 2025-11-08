@@ -112,9 +112,10 @@ export class StaffService {
   }
 
   async findByHospitalAndDepartment(
-    hospital: string,
+    hospitalId: string,
     department: DepartmentValue,
   ) {
+    console.log(department);
     return await this.staffRepository.find({
       where: {
         departments: { value: department },

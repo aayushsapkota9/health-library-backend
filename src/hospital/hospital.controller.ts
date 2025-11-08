@@ -94,8 +94,8 @@ export class HospitalController {
     description: ErrorMessage.INTERNAL_SERVER_ERROR,
   })
   @ResponseMessage(SuccessMessage.FETCH, 'Hospitals')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  // @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PATIENT)
   @Get()
   findAll(@Query() query: PaginationDto) {
     return this.hospitalService.findAll(query);
@@ -117,7 +117,7 @@ export class HospitalController {
   })
   @ResponseMessage(SuccessMessage.FETCH, 'Hospital')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PATIENT)
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.hospitalService.findOne(id);

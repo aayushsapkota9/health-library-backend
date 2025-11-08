@@ -24,7 +24,7 @@ export class DiseasesService {
 
     try {
       const slug = generateSlug(createDiseaseDto.name);
-      const existingName = await this.findOne(slug);
+      const existingName = await this.findBySlug(slug);
       if (existingName) {
         throw new BadRequestException(
           'Disease already exists, try changing the name',
@@ -32,9 +32,10 @@ export class DiseasesService {
       }
       const disease = this.diseaseRepository.create(createDiseaseDto);
       disease.slug = slug;
-      await queryRunner.manager.save(disease);
+      // await queryRunner.manager.save(disease);
+      // console.log(disease);
       await this.searchService.indexDisease(disease);
-
+      return;
       await queryRunner.commitTransaction();
       return disease;
     } catch (err) {
@@ -59,7 +60,7 @@ export class DiseasesService {
     return this.diseaseRepository.findOne({ where: { id } });
   }
 
-  findById(slug: string) {
+  findBySlug(slug: string) {
     return this.diseaseRepository.findOne({ where: { slug } });
   }
 
