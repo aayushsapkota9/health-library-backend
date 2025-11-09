@@ -8,6 +8,7 @@ import { BloodPressure } from './entities/blood-pressure.entity';
 import { HeartRate } from './entities/heart-rate.entity';
 import { BodyTemperature } from './entities/temperature.entity';
 import { PatientsModule } from 'src/patients/patients.module';
+import { VitalsService } from './vitals.service';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { PatientsModule } from 'src/patients/patients.module';
     PatientsModule,
   ],
   controllers: [RecordsController],
-  providers: [RecordsService],
+  providers: [RecordsService, VitalsService],
   exports: [RecordsService],
 })
 export class RecordsModule {}

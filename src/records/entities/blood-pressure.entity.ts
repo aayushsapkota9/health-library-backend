@@ -4,9 +4,6 @@ import { Record } from './record.entity';
 
 @Entity()
 export class BloodPressure extends PrimaryEntity {
-  @Column({ type: 'timestamp' })
-  time: Date;
-
   @Column()
   systolic: number;
 

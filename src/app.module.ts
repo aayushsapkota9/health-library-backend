@@ -23,6 +23,7 @@ import { TestsModule } from './tests/tests.module';
 import { TasksModule } from './tasks/tasks.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PrescriptionsModule } from './prescriptions/prescriptions.module';
+import { LlmModule } from './llm/llm.module';
 @Module({
   imports: [
     TypeOrmModule.forRoot(TypeOrmConfig),
@@ -48,6 +49,7 @@ import { PrescriptionsModule } from './prescriptions/prescriptions.module';
     TasksModule,
     NotificationsModule,
     PrescriptionsModule,
+    LlmModule,
     // CustomerBillModule,
   ],
   controllers: [AppController],
