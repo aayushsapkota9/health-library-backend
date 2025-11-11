@@ -32,10 +32,9 @@ export class DiseasesService {
       }
       const disease = this.diseaseRepository.create(createDiseaseDto);
       disease.slug = slug;
-      // await queryRunner.manager.save(disease);
-      // console.log(disease);
       await this.searchService.indexDisease(disease);
-      return;
+      await queryRunner.manager.save(disease);
+
       await queryRunner.commitTransaction();
       return disease;
     } catch (err) {
@@ -65,33 +64,7 @@ export class DiseasesService {
   }
 
   async update(id: string, updateDiseaseDto: UpdateDiseaseDto) {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
-    try {
-      // Find the existing disease by ID
-      const disease = await this.diseaseRepository.findOneBy({ id });
-
-      if (!disease) {
-        throw new BadRequestException('Disease not found');
-      }
-
-      this.diseaseRepository.merge(disease, updateDiseaseDto);
-      disease.html = updateDiseaseDto.html;
-
-      await queryRunner.manager.save(disease);
-
-      await this.searchService.editDisease(disease);
-
-      await queryRunner.commitTransaction();
-      return disease;
-    } catch (err) {
-      await queryRunner.rollbackTransaction();
-      throw err;
-    } finally {
-      await queryRunner.release();
-    }
+    console.log(id, updateDiseaseDto);
   }
 
   async remove(id: string) {
@@ -120,7 +93,7 @@ export class DiseasesService {
   }
 
   async search(paginationDto: PaginationDto) {
-    return this.searchService.searchDisease(paginationDto);
+    return this.searchService.searchDiseasesBySymptomsD(paginationDto);
   }
   async searchByAlphabet(query: PaginationDto) {
     return this.diseaseRepository.find({
