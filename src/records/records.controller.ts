@@ -27,11 +27,16 @@ import { ResponseMessage } from 'src/decorators/response.decorators';
 import { giveSwaggerResponseMessage } from 'src/helpers/swagger-message';
 import { SuccessMessage, ErrorMessage } from 'src/interfaces/common.interface';
 import { PaginationDto } from 'src/helpers/pagination.dto';
+import { CreateVitalsDto } from './dto/create-vitals.dto';
+import { VitalsService } from './vitals.service';
 
 @ApiTags('records')
 @Controller('records')
 export class RecordsController {
-  constructor(private readonly recordsService: RecordsService) {}
+  constructor(
+    private readonly recordsService: RecordsService,
+    private readonly vitalsService: VitalsService,
+  ) {}
 
   //--------------------------------------------------------------------------------------------------------------------------
   @ApiOperation({ summary: 'Register a new record/admit a patient' })
@@ -148,5 +153,34 @@ export class RecordsController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.recordsService.remove(id);
+  }
+
+  //Vitals
+  //--------------------------------------------------------------------------------------------------------------------------
+  @ApiOperation({ summary: 'Log patient vitals' })
+  @ApiOkResponse({
+    status: 201,
+    description: giveSwaggerResponseMessage(
+      SuccessMessage.ADMITTED,
+      'Data is ',
+    ),
+  })
+  @ApiBadRequestResponse({
+    status: 400,
+    description: ErrorMessage.INVALID_BODY,
+  })
+  @ApiInternalServerErrorResponse({
+    status: 500,
+    description: ErrorMessage.INTERNAL_SERVER_ERROR,
+  })
+  @ResponseMessage(SuccessMessage.REGISTER, 'Data is')
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  // @Roles(Role.STAFF)
+  @Patch('/vitals/:id')
+  updateVitals(
+    @Param('id') id: string,
+    @Body() createVitalsDto: CreateVitalsDto,
+  ) {
+    return this.vitalsService.create(id, createVitalsDto);
   }
 }

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ElasticsearchModule } from '@nestjs/elasticsearch';
 import { SearchService } from './search.service';
+import { LlmModule } from 'src/llm/llm.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { SearchService } from './search.service';
         },
       }),
     }),
+    LlmModule,
   ],
   exports: [SearchService],
   providers: [SearchService],

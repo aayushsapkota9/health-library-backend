@@ -213,6 +213,20 @@ services:
       interval: 10s
       timeout: 10s
       retries: 120
+  
+  # postgres:
+  #   image: postgres:15
+  #   container_name: postgres-db
+  #   restart: always
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: password
+  #     POSTGRES_DB: healthlibrarydb
+  #   ports:
+  #     - "5432:5432"   # exposes Postgres outside
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+
 
 volumes:
   certs:
@@ -224,4 +238,6 @@ volumes:
   esdata03:
     driver: local
   kibanadata:
+    driver: local
+  postgres_data:
     driver: local
