@@ -1,3 +1,4 @@
+//this is used for searching
 export interface IParsedQuery {
   positive: string[]; // symptoms user has
   negative: string[]; // symptoms user explicitly does NOT have
@@ -24,6 +25,7 @@ export interface IParsedQuery {
   };
   notes?: string; // free text for extra info
 }
+//these interfaces are used during indexing process
 type SymptomStructured = {
   name: string;
   synonyms: string[];

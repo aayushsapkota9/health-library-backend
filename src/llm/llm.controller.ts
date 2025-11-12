@@ -46,7 +46,9 @@ export class LlmController {
   // @UseGuards(JwtAuthGuard, RolesGuard)
   // @Roles(Role.STAFF)
   @Post()
-  create(@Body() createLlmDto: CreateLlmDto) {}
+  create(@Body() createLlmDto: CreateLlmDto) {
+    return createLlmDto;
+  }
 
   @Get()
   findAll() {

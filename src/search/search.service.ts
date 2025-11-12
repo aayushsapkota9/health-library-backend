@@ -1,28 +1,16 @@
-import {
-  BadRequestException,
-  Injectable,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
 import * as cheerio from 'cheerio';
 import * as natural from 'natural';
-import nlp from 'compromise';
 import { Disease } from 'src/diseases/entities/disease.entity';
-import {
-  POSSIBLE_SYMPTOMS,
-  POSSIBLE_SYMPTOMS_NEPALI,
-} from 'src/constants/symptoms';
 import { PaginationDto } from 'src/helpers/pagination.dto';
-import { STOP_WORDS } from 'src/constants/StopWords';
 import { LlmService } from 'src/llm/llm.service';
-import { SearchHit } from '@elastic/elasticsearch/lib/api/types';
-import { parse } from 'path';
 import { StructuredQuery } from 'src/interfaces/search.interface';
+import { json } from 'stream/consumers';
 // Define the interface for the LLM's parsed query
 
 @Injectable()
 export class SearchService {
-  private tokenizer = new natural.WordTokenizer();
   private stemmer = natural.PorterStemmer;
 
   constructor(
@@ -48,54 +36,82 @@ export class SearchService {
     return { plainText };
   }
   async indexDisease(disease: Disease) {
-    // extract text and symptoms from your HTML/article
+    // 1. Extract text
     const { plainText } = this.extractDataFromHtml(disease.html);
     const articlePlainText = plainText;
-    const structuredData: StructuredQuery =
+    const structuredData: any =
       await this.llmService.generateComplexDiseaseJson(articlePlainText);
 
-    // // 2. Generate the "general" embedding from the full text
-    // const embedding_general =
-    //   await this.llmService.getEmbedding(articlePlainText);
-
-    // 3. Build the rich symptom text for the symptom embedding
+    // 2. Build and get symptom embedding
     const symptomText = this.llmService.buildSymptomEmbeddingText(
       structuredData.symptoms_structured,
     );
-
-    // 4. Generate the "symptom-specific" embedding
     const embedding_symptoms = await this.llmService.getEmbedding(symptomText);
 
-    // 5. Create a simple keyword list for basic filtering
-    const symptoms_keywords = structuredData.symptoms_structured.map(
+    // 3. Get raw keywords
+    const symptoms_keywords_raw = structuredData.symptoms_structured.map(
       (s: any) => s.name,
     );
 
-    // 6. Build the final Elasticsearch document body
+    // 4. Get NORMALIZED keywords using the new service
+    const symptoms_normalized = await this.llmService.getNormalizedTermsList(
+      symptoms_keywords_raw,
+    );
+
+    // 5. Build the final Elasticsearch document body
     const documentBody = {
       ...structuredData,
       plain_text: articlePlainText,
-      // embedding_general,
       embedding_symptoms,
-      symptoms_keywords,
+      symptoms_keywords_raw, // e.g., ["Fever", "Tiredness"]
+      symptoms_normalized, // e.g., ["fever", "fatigue"]
     };
 
-    // 7. Index the document
+    // 6. Index the document
     return await this.elasticsearchService.index({
       index: 'diseases',
-      id: disease.id,
       body: documentBody,
+      id: disease.id,
     });
   }
   public async searchDiseasesBySymptomsD(
     paginationDto: PaginationDto,
   ): Promise<any> {
-    const parsedQuery = await this.llmService.parseSymptomQuery(
-      paginationDto.query,
-    );
+    let parsedPayload: any = {};
+
+    try {
+      // Handle cases where 'json' might be double-encoded
+      const raw = paginationDto.json;
+      if (typeof raw === 'string') {
+        const onceParsed = JSON.parse(raw);
+        parsedPayload =
+          typeof onceParsed === 'string' ? JSON.parse(onceParsed) : onceParsed;
+      }
+    } catch (e) {
+      parsedPayload = {};
+    }
+
+    const symptoms = Array.isArray(parsedPayload.symptoms)
+      ? parsedPayload.symptoms
+      : [];
+    const bodyParts = Array.isArray(parsedPayload.bodyParts)
+      ? parsedPayload.bodyParts
+      : [];
+    const patientDescription = paginationDto.query || '';
+
+    const parsedQuery = await this.llmService.parseSymptomQuery({
+      symptoms,
+      bodyParts,
+      patientDescription,
+    });
 
     console.log('Parsed Query:', JSON.stringify(parsedQuery, null, 2));
-
+    const aiSuggestion = await this.llmService.riskAndAIInsightsGoogle({
+      symptoms,
+      bodyParts,
+      patientDescription,
+    });
+    return aiSuggestion;
     // -------------------------------
     // 1️⃣ Prepare symptom lists
     const positiveSymptoms = (parsedQuery.positive || []).map((t) =>
@@ -108,46 +124,65 @@ export class SearchService {
       this._normalizeTerm(t),
     );
 
+    // FIX: Define highSpecificitySymptoms Set to prevent ReferenceError.
+    // Populate this set with terms that indicate a severe or highly specific condition.
+    const highSpecificitySymptoms = new Set<string>([]);
+
     console.log('Positive symptoms:', positiveSymptoms);
     console.log('Negative symptoms:', negativeSymptoms);
     console.log('Uncertain symptoms:', uncertainSymptoms);
 
-    // High-specificity symptoms that should heavily penalize diseases if missing
-    const highSpecificitySymptoms = new Set([
-      // Jaundice-related
-      'jaundice',
-      'yellow_skin_and_eyes',
-      'yellowing',
-      'yellow_eyes',
-      'yellow_skin',
-      'icterus',
-      'scleral_icterus',
-      'dark_colored_urine',
-      'dark_urine',
-      'pale_colored_stool',
-      'pale_stool',
-      'clay_colored_stool',
-
-      // Respiratory-specific
-      'hemoptysis',
-      'coughing_up_blood',
-      'blood_in_sputum',
-
-      // Neurological-specific
-      'loss_of_smell',
-      'loss_of_taste',
-      'anosmia',
-      'ageusia',
-
-      // Skin-specific (when related to liver)
-      'pruritus',
-      'itchy_skin',
-      'itching',
-      'severe_itching',
-    ]);
-
     // -------------------------------
-    // 2️⃣ Build Elasticsearch query (simpler, no complex script)
+    // 2️⃣ Build Elasticsearch query (incorporate location for better filtering)
+    const locationClauses = [];
+
+    // FIX: Process location-specific symptoms and build MUST clauses
+    for (const symptom in parsedQuery.location) {
+      if (parsedQuery.location.hasOwnProperty(symptom)) {
+        const locations = parsedQuery.location[symptom];
+        const normalizedSymptom = this._normalizeTerm(symptom);
+
+        for (const location of locations) {
+          const normalizedLocation = this._normalizeTerm(location);
+
+          // Clause that MUST match both the symptom AND the location
+          locationClauses.push({
+            bool: {
+              must: [
+                {
+                  multi_match: {
+                    query: normalizedSymptom,
+                    // fields: [
+                    //   'symptoms_keywords^4',
+                    //   'symptoms_structured.name^3',
+                    // ],
+                    fuzziness: 'AUTO',
+                    boost: 2, // Boost the score for linked symptom+location
+                  },
+                },
+                {
+                  multi_match: {
+                    query: normalizedLocation,
+                    // fields: ['symptoms_keywords', 'body_locations_keywords'],
+                    fuzziness: 'AUTO',
+                    boost: 1.5,
+                  },
+                },
+              ],
+            },
+          });
+
+          // Remove the location-aware symptom from the general positive list
+          // to prevent double-counting
+          const indexToRemove = positiveSymptoms.indexOf(normalizedSymptom);
+          if (indexToRemove > -1) {
+            positiveSymptoms.splice(indexToRemove, 1);
+          }
+        }
+      }
+    }
+
+    // Clauses for general positive symptoms (those remaining without a specified location)
     const positiveClauses = positiveSymptoms.map((symptom) => ({
       multi_match: {
         query: symptom,
@@ -179,14 +214,14 @@ export class SearchService {
     const esQuery = {
       query: {
         bool: {
-          should: [...positiveClauses, ...uncertainClauses],
+          // Include location clauses in the 'should' array for scoring
+          should: [...positiveClauses, ...uncertainClauses, ...locationClauses],
           must_not: negativeClauses,
           minimum_should_match: 1,
         },
       },
       size: Math.min(paginationDto.limit * 5, 50), // Fetch more candidates
     };
-
     // -------------------------------
     // 3️⃣ Execute search
     const results = await this.elasticsearchService.search({
@@ -206,7 +241,7 @@ export class SearchService {
       const missedSymptoms = new Set<string>();
       const scoreBreakdown = [];
 
-      // Helper function to check if symptom matches
+      // Helper function to check if symptom matches (unchanged)
       const checkSymptomMatch = (
         symptom: any,
         querySymptom: string,
@@ -239,17 +274,21 @@ export class SearchService {
         return false;
       };
 
-      // Score positive symptoms
-      for (const querySymptom of positiveSymptoms) {
+      // Score positive symptoms (including those that were location-aware)
+      for (const querySymptom of [
+        ...positiveSymptoms,
+        ...Object.keys(parsedQuery.location || {}),
+      ].map((t) => this._normalizeTerm(t))) {
         let found = false;
         let matchDetails = null;
-        // @ts-ignore
+        // @ts-expect-error type error
 
         for (const symptom of disease.symptoms_structured || []) {
           if (checkSymptomMatch(symptom, querySymptom)) {
             found = true;
             matchedSymptoms.add(querySymptom);
 
+            // Use the structured data from the disease document for scoring
             const weight = symptom.weight || 5;
             const frequency = symptom.frequency_percent || 50;
 
@@ -258,6 +297,7 @@ export class SearchService {
             else if (symptom.specificity === 'medium') specificity = 5.0;
 
             let intensityFactor = 1.0;
+            // Use intensity from LLM if available
             if (parsedQuery.intensity && parsedQuery.intensity[querySymptom]) {
               const intensity = parsedQuery.intensity[querySymptom];
               if (intensity === 'severe') intensityFactor = 3.0;
@@ -266,6 +306,7 @@ export class SearchService {
             }
 
             let durationFactor = 1.0;
+            // Use duration from LLM if available
             if (parsedQuery.duration && parsedQuery.duration[querySymptom]) {
               if (parsedQuery.duration[querySymptom] === 'chronic') {
                 durationFactor = frequency > 50 ? 4.0 : 2.0;
@@ -293,7 +334,7 @@ export class SearchService {
               },
             };
 
-            break;
+            break; // Stop searching structured symptoms once a match is found
           }
         }
 
@@ -327,7 +368,7 @@ export class SearchService {
 
       // Small bonus for matching uncertain symptoms
       for (const uncertainSymptom of uncertainSymptoms) {
-        // @ts-ignore
+        // @ts-expect-error for a reason
 
         for (const symptom of disease.symptoms_structured || []) {
           if (checkSymptomMatch(symptom, uncertainSymptom)) {
@@ -343,13 +384,30 @@ export class SearchService {
         }
       }
 
+      // Penalty for negative symptoms being present
+      for (const negativeSymptom of negativeSymptoms) {
+        // @ts-expect-error
+        for (const symptom of disease.symptoms_structured || []) {
+          if (checkSymptomMatch(symptom, negativeSymptom)) {
+            penalty += 100; // Large penalty for having a symptom the user negated
+            scoreBreakdown.push({
+              query: negativeSymptom,
+              matched: symptom.name,
+              penalty: 100,
+              reason: 'Negative symptom present',
+            });
+            break;
+          }
+        }
+      }
+
       const finalScore = Math.max(0, score - penalty);
 
       return {
         ...hit,
         _score: finalScore,
         _debug: {
-          // @ts-ignore
+          // @ts-expect-error some mismatch property
           disease_name: disease?.name,
           positive_score: Math.round(score * 100) / 100,
           penalty: Math.round(penalty * 100) / 100,
@@ -372,23 +430,23 @@ export class SearchService {
     sortedResults.forEach((result, idx) => {
       console.log(`\n${idx + 1}. ${result._debug.disease_name}`);
       console.log(
-        `   Score: ${result._debug.final_score} (positive: ${result._debug.positive_score}, penalty: ${result._debug.penalty})`,
+        `   Score: ${result._debug.final_score} (positive: ${result._debug.positive_score}, penalty: ${result._debug.penalty})`,
       );
-      console.log(`   Matched: ${result._debug.matched_symptoms.join(', ')}`);
-      console.log(`   Missed: ${result._debug.missed_symptoms.join(', ')}`);
+      console.log(`   Matched: ${result._debug.matched_symptoms.join(', ')}`);
+      console.log(`   Missed: ${result._debug.missed_symptoms.join(', ')}`);
     });
 
     // Clean up results
     const data = sortedResults.map((item) => {
       if (item._source) {
-        //@ts-ignore
+        //@ts-expect-error no idea
         item._source.plain_text = 'none';
-        //@ts-ignore
+        //@ts-expect-error no idea
         item._source.embedding_symptoms = 'none';
       }
       return item;
     });
 
-    return data;
+    return { data, aiSuggestion };
   }
 }

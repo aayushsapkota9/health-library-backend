@@ -3,20 +3,24 @@ import {
   Injectable,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { CreateLlmDto } from './dto/create-llm.dto';
 import { UpdateLlmDto } from './dto/update-llm.dto';
 import fetch from 'node-fetch';
 import { GoogleGenAI } from '@google/genai';
-import { response } from 'express';
 import {
   EXTRACT_COMPLEX_DISEASE_DATA_PROMPT,
+  NORMALIZE_SYMPTOMS_PROMPT,
   PARSE_SYMPTOM_QUERY_PROMPT,
+  RISK_AND_AI_INSIGHTS_PROMPT,
 } from './const/customPrompt';
 import { IParsedQuery } from 'src/interfaces/search.interface';
-
+interface SearchQueries {
+  symptoms: Array<string>;
+  bodyParts: Array<string>;
+  patientDescription: string;
+}
 @Injectable()
 export class LlmService {
-  // This is the new, powerful function
+  //this fn extracts symptoms from articles
   async generateComplexDiseaseJson(plainText: string): Promise<any> {
     const prompt = EXTRACT_COMPLEX_DISEASE_DATA_PROMPT.replace(
       '{{plainText}}',
@@ -53,12 +57,7 @@ export class LlmService {
       );
     }
   }
-  // embedding.service.ts
-
-  /**
-   * A generic function to get an embedding for ANY text.
-   * This replaces your 'getEmbeddingFromSymptoms'
-   */
+  //get embedding during indexing
   async getEmbedding(text: string): Promise<number[]> {
     const API_URL = process.env.EMBEDDING_GEMMA_MEDICAL_300M_URL;
     const TOKEN = process.env.HF_TOKEN;
@@ -89,12 +88,7 @@ export class LlmService {
 
     throw new Error('Unexpected embedding response: ' + JSON.stringify(data));
   }
-
-  /**
-   * This helper builds the rich text string for symptom embedding
-   * from your new 'symptoms_structured' array.
-   * This replaces your old 'buildEmbeddingText'.
-   */
+  //individual symptom embedding
   buildSymptomEmbeddingText(
     symptoms: {
       name: string;
@@ -136,11 +130,17 @@ export class LlmService {
    * NEW FUNCTION: Parses a user's natural language query into
    * structured positive and negative symptoms.
    */
-  async parseSymptomQuery(queryText: string): Promise<IParsedQuery> {
+  async parseSymptomQuery({
+    symptoms,
+    bodyParts,
+    patientDescription,
+  }: SearchQueries): Promise<IParsedQuery> {
     const prompt = PARSE_SYMPTOM_QUERY_PROMPT.replace(
-      '{{queryText}}',
-      queryText,
-    );
+      '{{symptoms}}',
+      JSON.stringify(symptoms || []),
+    )
+      .replace('{{bodyParts}}', JSON.stringify(bodyParts || []))
+      .replace('{{patientDescription}}', patientDescription || '');
 
     try {
       const ai = new GoogleGenAI({
@@ -151,7 +151,7 @@ export class LlmService {
 
         contents: prompt,
       });
-      let text = res.candidates[0]?.content?.parts[0]?.text;
+      const text = res.candidates[0]?.content?.parts[0]?.text;
 
       if (!text) {
         throw new Error('No text response from AI');
@@ -173,6 +173,124 @@ export class LlmService {
       throw new ServiceUnavailableException(
         "Google LLM not available. Can't parse query.",
       );
+    }
+  }
+
+  async getNormalizedSymptomMap(
+    symptoms: string[],
+  ): Promise<Record<string, string>> {
+    if (!symptoms || symptoms.length === 0) {
+      return {};
+    }
+    const uniqueSymptoms = [...new Set(symptoms)];
+    const prompt = [
+      {
+        parts: [
+          {
+            text: NORMALIZE_SYMPTOMS_PROMPT.replace(
+              '{{plainText}}',
+              JSON.stringify(uniqueSymptoms),
+            ),
+          },
+        ],
+      },
+    ];
+    const ai = new GoogleGenAI({
+      apiKey: process.env.GOOGLE_API_KEY,
+    });
+    const res = await ai.models.generateContent({
+      model: 'gemini-2.0-flash',
+
+      contents: prompt,
+    });
+    let text = res.candidates[0]?.content?.parts[0]?.text;
+    if (!text) {
+      throw new Error('Unexpected response format from AI');
+    }
+    text = text.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+    try {
+      return JSON.parse(text) as Record<string, string>;
+    } catch (e) {
+      throw new Error('Unexpected response format from AI');
+    }
+  }
+
+  async getNormalizedTermsList(symptoms: string[]): Promise<string[]> {
+    const symptomMap = await this.getNormalizedSymptomMap(symptoms);
+    const normalizedTerms = Object.values(symptomMap);
+    return [...new Set(normalizedTerms)]; // Return unique normalized terms
+  }
+  async riskAndAIInsightsHG({
+    symptoms,
+    bodyParts,
+    patientDescription,
+  }: SearchQueries) {
+    const API_URL = process.env.MEDGEMMA_ASSIST_4B_URL;
+    const TOKEN = process.env.HF_TOKEN;
+    const text = RISK_AND_AI_INSIGHTS_PROMPT.replace(
+      '{{symptoms}}',
+      JSON.stringify(symptoms),
+    )
+      .replace('{{bodyParts}}', JSON.stringify(bodyParts))
+      .replace('{{patientDescription}}', patientDescription);
+
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ inputs: text, options: { wait_for_model: true } }),
+    });
+
+    const data = await res.json();
+    return data;
+  }
+  async riskAndAIInsightsGoogle({
+    symptoms,
+    bodyParts,
+    patientDescription,
+  }: SearchQueries) {
+    const prompt = RISK_AND_AI_INSIGHTS_PROMPT.replace(
+      '{{symptoms}}',
+      JSON.stringify(symptoms),
+    )
+      .replace('{{bodyParts}}', JSON.stringify(bodyParts))
+      .replace('{{patientDescription}}', patientDescription);
+
+    let text: string | undefined;
+
+    try {
+      const ai = new GoogleGenAI({
+        apiKey: process.env.GOOGLE_API_KEY,
+      });
+
+      const res = await ai.models.generateContent({
+        model: 'gemini-2.0-flash',
+        contents: prompt,
+      });
+
+      text = res.candidates[0]?.content?.parts[0]?.text;
+
+      if (!text) {
+        throw new Error('No text response from AI');
+      }
+    } catch (error) {
+      console.error('AI generation failed:', error);
+      throw new Error('Failed to get AI insights');
+    }
+
+    const cleanedText = text.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+
+    try {
+      return JSON.parse(cleanedText);
+    } catch (e) {
+      console.error(
+        'Failed to parse JSON from Gemini (Query):',
+        cleanedText,
+        e,
+      );
+      throw new Error('Unexpected response format from AI');
     }
   }
 }

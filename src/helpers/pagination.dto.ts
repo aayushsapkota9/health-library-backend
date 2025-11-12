@@ -32,6 +32,14 @@ export class PaginationDto {
 
   @IsOptional()
   @IsString()
-  @ApiPropertyOptional({ description: 'Search term', example: 'John' })
+  @ApiPropertyOptional({
+    description: 'Search term',
+    example: 'Text/Disease/User Description',
+  })
   query?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ description: 'JSON string', example: 'JSON' })
+  json: string;
 }
